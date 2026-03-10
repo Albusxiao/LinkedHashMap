@@ -6,6 +6,7 @@
 #include "exceptions.hpp"
 #include "utility.hpp"
 
+#include <vector>
 class Hash {
 public:
     unsigned int operator()(Integer lhs) const {
@@ -22,6 +23,11 @@ public:
 namespace sjtu {
 template<class T>
 class double_list {
+	struct atom {
+		T data;
+		atom *next,*pre;
+	};
+	vector<atom> data_list;
 public:
 	/**
 	 * elements
@@ -34,7 +40,7 @@ public:
 	 * you can also add some if needed.
 	 */
 	double_list() {}
-	double_list(const double_list<T> &other) {}
+	double_list(const double_list<T> &other): data_list{}
 	~double_list() {}
 
 	class iterator {
