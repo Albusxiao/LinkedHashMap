@@ -1,12 +1,15 @@
 #ifndef SJTU_LRU_HPP
 #define SJTU_LRU_HPP
 
+#include <list>
+
 #include "class-integer.hpp"
 #include "class-matrix.hpp"
 #include "exceptions.hpp"
 #include "utility.hpp"
 
-#include <vector>
+using std::vector;
+
 class Hash {
 public:
     unsigned int operator()(Integer lhs) const {
@@ -21,374 +24,589 @@ public:
 };
 
 namespace sjtu {
-template<class T>
-class double_list {
-	struct atom {
-		T data;
-		atom *next,*pre;
-	};
-	vector<atom> data_list;
-public:
-	/**
-	 * elements
-	 * add whatever you want
-	 */
+    template<class T>
+    class double_list {
+        struct atom {
+            T data;
+            atom *pre, *next;
+            atom(atom *a1, atom *a2, T t) : pre(a1), next(a2), data(t) {};
+        };
+        atom *begin_atom, *end_atom;
+        size_t size;
 
-	// --------------------------
-	/**
-	 * the follows are constructors and destructors
-	 * you can also add some if needed.
-	 */
-	double_list() {}
-	double_list(const double_list<T> &other): data_list{}
-	~double_list() {}
+    public:
+        /**
+         * elements
+         * add whatever you want
+         */
 
-	class iterator {
-	public:
-		/**
-		 * elements
-		 * add whatever you want
-		 */
-		// --------------------------
-		/**
-		 * the follows are constructors and destructors
-		 * you can also add some if needed.
-		 */
-		iterator() {}
-		iterator(const iterator &t) {}
-		~iterator() {}
-		
-		/**
-		 * iter++
-		 */
-		iterator operator++(int) {}
-		/**
-		 * ++iter
-		 */
-		iterator &operator++() {}
-		/**
-		 * iter--
-		 */
-		iterator operator--(int) {}
-		/**
-		 * --iter
-		 */
-		iterator &operator--() {}
-		
-		/**
-		 * if the iter didn't point to a value
-		 * throw " invalid"
-		 */
-		T &operator*() const {}
-		
-		/**
-		 * other operation
-		 */
-		T *operator->() const noexcept {}
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-	};
-	/**
-	 * return an iterator to the beginning
-	 */
-	iterator begin() {}
-	/**
-	 * return an iterator to the ending
-	 * in fact, it returns the iterator point to nothing,
-	 * just after the last element.
-	 */
-	iterator end() {}
-	/**
-	 * if the iter didn't point to anything, do nothing,
-	 * otherwise, delete the element pointed by the iter
-	 * and return the iterator point at the same "index"
-	 * e.g.
-	 * 	if the origin iterator point at the 2nd element
-	 * 	the returned iterator also point at the
-	 *  2nd element of the list after the operation
-	 *  or nothing if the list after the operation
-	 *  don't contain 2nd elememt.
-	 */
-	iterator erase(iterator pos) {}
+        // --------------------------
+        /**
+         * the follows are constructors and destructors
+         * you can also add some if needed.
+         */
+        double_list() : begin_atom(nullptr),end_atom(nullptr),size(0){}
 
-	/**
-	 * the following are operations of double list
-	 */
-	void insert_head(const T &val) {}
-	void insert_tail(const T &val) {}
-	void delete_head() {}
-	void delete_tail() {}
-	/**
-	 * if didn't contain anything, return true,
-	 * otherwise false.
-	 */
-	bool empty() {}
-};
+        double_list(const double_list<T> &other) : begin_atom(nullptr), end_atom(nullptr), size(0) {
+            atom* current = other.begin_atom;
+            while (current != nullptr) {
+                insert_tail(current->data);
+                current = current->next;
+            }
+        }
 
-template<class Key, class T, class Hash = std::hash<Key>, class Equal = std::equal_to<Key>>
-class hashmap {
-public:
-	using value_type = pair<const Key, T>;
-	/**
-	 * elements
-	 * add whatever you want
-	 */
+        ~double_list() {
+            while (size != 0)delete_head();
+        }
+        double_list &operator=(const double_list & other) {
+            atom* current = other.begin_atom;
+            while (current != nullptr) {
+                insert_tail(current->data);
+                current = current->next;
+            }
+            return *this;
+        }
+        class iterator {
+        public:
+            /**
+             * elements
+             * add whatever you want
+             */
+            atom *it,*end_atom;
+            // --------------------------
+            /**
+             * the follows are constructors and destructors
+             * you can also add some if needed.
+             */
+            iterator() : it(nullptr),end_atom(nullptr) {
+            }
+            iterator(const atom* &t,const atom* end) : it(t),end_atom(end) {
+            }
+            iterator(const iterator &t) : it(t.it),end_atom(t.end_atom) {
+            }
 
-	// --------------------------
+            ~iterator() = default;
 
-	/**
-	 * the follows are constructors and destructors
-	 * you can also add some if needed.
-	 */
-	hashmap() {}
-	hashmap(const hashmap &other) {}
-	~hashmap() {}
-	hashmap &operator=(const hashmap &other) {}
+            /**
+             * iter++
+             */
+            iterator operator++(int) {
+                iterator tmp = *this;
+                if (it==nullptr)throw "End++";
+                if (it!=nullptr&&it->next==nullptr)return iterator();
+                if (it != nullptr)it = it->next;
+                return tmp;
+            }
 
-	class iterator {
-	public:
-		/**
-		 * elements
-		 * add whatever you want
-		 */
-		// --------------------------
-		/**
-		 * the follows are constructors and destructors
-		 * you can also add some if needed.
-		 */
-		iterator() {}
-		iterator(const iterator &t) {}
-		~iterator() {}
+            /**
+             * ++iter
+             */
+            iterator &operator++() {
+                if (it==nullptr)throw "End++";
+                if (it!=nullptr&&it->next==nullptr)return iterator();
+                if (it != nullptr)it = it->next;
+                return *this;
+            }
 
-		/**
-		 * if point to nothing
-		 * throw
-		 */
-		value_type &operator*() const {}
+            /**
+             * iter--
+             */
+            iterator operator--(int) {
+                iterator tmp = *this;
+                if (it==nullptr)return iterator(end_atom,end_atom);
+                if (it!=nullptr&&it->pre == nullptr)throw "Begin()--";
+                if (it!=nullptr)it = it->pre;
+                return tmp;
+            }
 
-		/**
-		 * other operation
-		 */
-		value_type *operator->() const noexcept {}
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-	};
+            /**
+             * --iter
+             */
+            iterator &operator--() {
+                if (it==nullptr)return iterator(end_atom,end_atom);
+                if (it!=nullptr&&it->pre == nullptr)throw "Begin()--";
+                if (it!=nullptr)it = it->pre;
+                return *this;
+            }
 
-	void clear() {}
-	/**
-	 * you need to expand the hashmap dynamically
-	 */
-	void expand() {}
+            /**
+             * if the iter didn't point to a value
+             * throw " invalid"
+             */
+            T &operator*() const {
+                if (it != nullptr)return it->data;
+                throw "nullptr";
+            }
 
-	/**
-	 * the iterator point at nothing
-	 */
-	iterator end() const {}
-	/**
-	 * find, return a pointer point to the value
-	 * not find, return the end (point to nothing)
-	 */
-	iterator find(const Key &key) const {}
-	/**
-	 * already have a value_pair with the same key
-	 * -> just update the value, return false
-	 * not find a value_pair with the same key
-	 * -> insert the value_pair, return true
-	 */
-	sjtu::pair<iterator, bool> insert(const value_type &value_pair) {}
-	/**
-	 * the value_pair exists, remove and return true
-	 * otherwise, return false
-	 */
-	bool remove(const Key &key) {}
-};
+            /**
+             * other operation
+             */
+            T *operator->() const noexcept {
+                if (it != nullptr)return &(it->data);
+                throw "nullptr";
+            }
 
-template<class Key, class T, class Hash = std::hash<Key>, class Equal = std::equal_to<Key>>
-class linked_hashmap : public hashmap<Key, T, Hash, Equal> {
-public:
-	typedef pair<const Key, T> value_type;
-	/**
-	 * elements
-	 * add whatever you want
-	 */
-	// --------------------------
-	class const_iterator;
-	class iterator {
-	public:
-		/**
-		 * elements
-		 * add whatever you want
-		 */
-		// --------------------------
-		iterator() {}
-		iterator(const iterator &other) {}
-		~iterator() {}
+            bool operator==(const iterator &rhs) const {
+                return rhs.it == it;
+            }
 
-		/**
-		 * iter++
-		 */
-		iterator operator++(int) {}
-		/**
-		 * ++iter
-		 */
-		iterator &operator++() {}
-		/**
-		 * iter--
-		 */
-		iterator operator--(int) {}
-		/**
-		 * --iter
-		 */
-		iterator &operator--() {}
+            bool operator!=(const iterator &rhs) const {
+                return rhs.it != it;
+            }
+        };
 
-		/**
-		 * if the iter didn't point to a value
-		 * throw "star invalid"
-		 */
-		value_type &operator*() const {}
-		value_type *operator->() const noexcept {}
+        /**
+         * return an iterator to the beginning
+         */
+        iterator begin() {
+            return iterator(begin_atom);
+        }
 
-		/**
-		 * operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-		bool operator==(const const_iterator &rhs) const {}
-		bool operator!=(const const_iterator &rhs) const {}
-	};
+        /**
+         * return an iterator to the ending
+         * in fact, it returns the iterator point to nothing,
+         * just after the last element.
+         */
+        iterator end() {
+            return iterator(nullptr);
+        }
 
-	class const_iterator {
-	public:
-		/**
-		 * elements
-		 * add whatever you want
-		 */
-		// --------------------------
-		const_iterator() {}
-		const_iterator(const iterator &other) {}
+        /**
+         * if the iter didn't point to anything, do nothing,
+         * otherwise, delete the element pointed by the iter
+         * and return the iterator point at the same "index"
+         * e.g.
+         * 	if the origin iterator point at the 2nd element
+         * 	the returned iterator also point at the
+         *  2nd element of the list after the operation
+         *  or nothing if the list after the operation
+         *  don't contain 2nd elememt.
+         */
+        iterator erase(iterator pos) {
+            atom *tmp = pos.it->next;
+            if (pos.it == nullptr)return iterator();
+            if (pos.it->next != nullptr)pos.it->next->pre = pos.it->pre;
+            if (pos.it->pre != nullptr)pos.it->pre->next = pos.it->next;
+            delete pos.it;
+            --size;
+            return iterator(tmp);
+        }
 
-		/**
-		 * iter++
-		 */
-		const_iterator operator++(int) {}
-		/**
-		 * ++iter
-		 */
-		const_iterator &operator++() {}
-		/**
-		 * iter--
-		 */
-		const_iterator operator--(int) {}
-		/**
-		 * --iter
-		 */
-		const_iterator &operator--() {}
+        /**
+         * the following are operations of double list
+         */
+        void insert_head(const T &val) {
+            atom *first = new atom(nullptr, begin_atom, val);
+            begin_atom->pre = first;
+            begin_atom = first;
+            ++size;
+        }
 
-		/**
-		 * if the iter didn't point to a value
-		 * throw
-		 */
-		const value_type &operator*() const {}
-		const value_type *operator->() const noexcept {}
+        void insert_tail(const T &val) {
+            atom *last = new atom(end_atom, nullptr, val);
+            end_atom->next = last;
+            end_atom = last;
+            ++size;
+        }
 
-		/**
-		 * operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		bool operator==(const iterator &rhs) const {}
-		bool operator!=(const iterator &rhs) const {}
-		bool operator==(const const_iterator &rhs) const {}
-		bool operator!=(const const_iterator &rhs) const {}
-	};
+        void delete_head() { erase(iterator(begin_atom)); --size;}
+        void delete_tail() { erase(iterator(end_atom)); --size;}
+        /**
+         * if didn't contain anything, return true,
+         * otherwise false.
+         */
+        bool empty() {
+            return size == 0;
+        }
+        void clear() {
+            while (size != 0)delete_head();
+        }
+    };
 
-	linked_hashmap() {}
-	linked_hashmap(const linked_hashmap &other) {}
-	~linked_hashmap() {}
-	linked_hashmap &operator=(const linked_hashmap &other) {}
+    template<class Key, class T, class Hash = std::hash<Key>, class Equal = std::equal_to<Key> >
+    class hashmap {
+    public:
+        using value_type = pair<const Key, T>;
+        /**
+         * elements
+         * add whatever you want
+         */
+        vector<double_list<value_type>> hash_map;
+        size_t size,current;
+        // --------------------------
 
-	/**
-	 * return the value connected with the Key(O(1))
-	 * if the key not found, throw
-	 */
-	T &at(const Key &key) {}
-	const T &at(const Key &key) const {}
-	T &operator[](const Key &key) {}
-	const T &operator[](const Key &key) const {}
+        /**
+         * the follows are constructors and destructors
+         * you can also add some if needed.
+         */
+        hashmap():size(100),current(0) {hash_map.assign(100,double_list<value_type>());}
+        hashmap(const hashmap &other):size(other.size),hash_map(other.hash_map),current(other.current){}
 
-	/**
-	 * return an iterator point to the first
-	 * inserted and existed element
-	 */
-	iterator begin() {}
-	const_iterator cbegin() const {}
-	/**
-	 * return an iterator after the last inserted element
-	 */
-	iterator end() {}
-	const_iterator cend() const {}
-	/**
-	 * if didn't contain anything, return true,
-	 * otherwise false.
-	 */
-	bool empty() const {}
+        ~hashmap() {
+            for (auto i:hash_map)i.clear();
+            hash_map.clear();
+        }
 
-	void clear() {}
+        hashmap &operator=(const hashmap &other) {
+            size=other.size;
+            hash_map.assign(size,double_list<value_type>());
+            for (int i=0;i<size;i++) {hash_map[i] = other.hash_map[i];}
+            return *this;
+        }
 
-	size_t size() const {}
-	/**
-	 * insert the value_piar
-	 * if the key of the value_pair exists in the map
-	 * update the value instead of adding a new element，
-	 * then the order of the element moved from inner of the
-	 * list to the head of the list
-	 * and return false
-	 * if the key of the value_pair doesn't exist in the map
-	 * add a new element and return true
-	 */
-	pair<iterator, bool> insert(const value_type &value) {}
-	/**
-	 * erase the value_pair pointed by the iterator
-	 * if the iterator points to nothing
-	 * throw
-	 */
-	void remove(iterator pos) {}
-	/**
-	 * return how many value_pairs consist of key
-	 * this should only return 0 or 1
-	 */
-	size_t count(const Key &key) const {}
-	/**
-	 * find the iterator points at the value_pair
-	 * which consist of key
-	 * if not find, return the iterator
-	 * point at nothing
-	 */
-	iterator find(const Key &key) {}
-};
+        class iterator {
+        public:
+            /**
+             * elements
+             * add whatever you want
+             */
+            int mp_index;
+            double_list<value_type>::iterator ls_it;
+            // --------------------------
+            /**
+             * the follows are constructors and destructors
+             * you can also add some if needed.
+             */
+            iterator():mp_index(-1),ls_it() {
+            }
 
-class lru {
-	using lmap = sjtu::linked_hashmap<Integer, Matrix<int>, Hash, Equal>;
-	using value_type = sjtu::pair<const Integer, Matrix<int>>;
+            iterator(const iterator &t) {
+            }
 
-public:
-	lru(int size) {}
-	~lru() {}
-	/**
-	 * save the value_pair in the memory
-	 * delete something in the memory if necessary
-	 */
-	void save(const value_type &v) const {}
-	/**
-	 * return a pointer contain the value
-	 */
-	Matrix<int> *get(const Integer &v) const {}
-	/**
-	 * just print everything in the memory
-	 * to debug or test.
-	 * this operation follows the order, but don't
-	 * change the order.
-	 */
-	void print() {}
-};
+            ~iterator() {
+            }
+
+            /**
+             * if point to nothing
+             * throw
+             */
+            value_type &operator*() const {
+            }
+
+            /**
+             * other operation
+             */
+            value_type *operator->() const noexcept {
+            }
+
+            bool operator==(const iterator &rhs) const {
+            }
+
+            bool operator!=(const iterator &rhs) const {
+            }
+        };
+
+        void clear() {
+
+        }
+
+        /**
+         * you need to expand the hashmap dynamically
+         */
+        void expand() {
+        }
+
+        /**
+         * the iterator point at nothing
+         */
+        iterator end() const {
+        }
+
+        /**
+         * find, return a pointer point to the value
+         * not find, return the end (point to nothing)
+         */
+        iterator find(const Key &key) const {
+        }
+
+        /**
+         * already have a value_pair with the same key
+         * -> just update the value, return false
+         * not find a value_pair with the same key
+         * -> insert the value_pair, return true
+         */
+        sjtu::pair<iterator, bool> insert(const value_type &value_pair) {
+        }
+
+        /**
+         * the value_pair exists, remove and return true
+         * otherwise, return false
+         */
+        bool remove(const Key &key) {
+        }
+    };
+
+    template<class Key, class T, class Hash = std::hash<Key>, class Equal = std::equal_to<Key> >
+    class linked_hashmap : public hashmap<Key, T, Hash, Equal> {
+    public:
+        typedef pair<const Key, T> value_type;
+        /**
+         * elements
+         * add whatever you want
+         */
+        // --------------------------
+        class const_iterator;
+
+        class iterator {
+        public:
+            /**
+             * elements
+             * add whatever you want
+             */
+            // --------------------------
+            iterator() {
+            }
+
+            iterator(const iterator &other) {
+            }
+
+            ~iterator() {
+            }
+
+            /**
+             * iter++
+             */
+            iterator operator++(int) {
+            }
+
+            /**
+             * ++iter
+             */
+            iterator &operator++() {
+            }
+
+            /**
+             * iter--
+             */
+            iterator operator--(int) {
+            }
+
+            /**
+             * --iter
+             */
+            iterator &operator--() {
+            }
+
+            /**
+             * if the iter didn't point to a value
+             * throw "star invalid"
+             */
+            value_type &operator*() const {
+            }
+
+            value_type *operator->() const noexcept {
+            }
+
+            /**
+             * operator to check whether two iterators are same (pointing to the same memory).
+             */
+            bool operator==(const iterator &rhs) const {
+            }
+
+            bool operator!=(const iterator &rhs) const {
+            }
+
+            bool operator==(const const_iterator &rhs) const {
+            }
+
+            bool operator!=(const const_iterator &rhs) const {
+            }
+        };
+
+        class const_iterator {
+        public:
+            /**
+             * elements
+             * add whatever you want
+             */
+            // --------------------------
+            const_iterator() {
+            }
+
+            const_iterator(const iterator &other) {
+            }
+
+            /**
+             * iter++
+             */
+            const_iterator operator++(int) {
+            }
+
+            /**
+             * ++iter
+             */
+            const_iterator &operator++() {
+            }
+
+            /**
+             * iter--
+             */
+            const_iterator operator--(int) {
+            }
+
+            /**
+             * --iter
+             */
+            const_iterator &operator--() {
+            }
+
+            /**
+             * if the iter didn't point to a value
+             * throw
+             */
+            const value_type &operator*() const {
+            }
+
+            const value_type *operator->() const noexcept {
+            }
+
+            /**
+             * operator to check whether two iterators are same (pointing to the same memory).
+             */
+            bool operator==(const iterator &rhs) const {
+            }
+
+            bool operator!=(const iterator &rhs) const {
+            }
+
+            bool operator==(const const_iterator &rhs) const {
+            }
+
+            bool operator!=(const const_iterator &rhs) const {
+            }
+        };
+
+        linked_hashmap() {
+        }
+
+        linked_hashmap(const linked_hashmap &other) {
+        }
+
+        ~linked_hashmap() {
+        }
+
+        linked_hashmap &operator=(const linked_hashmap &other) {
+        }
+
+        /**
+         * return the value connected with the Key(O(1))
+         * if the key not found, throw
+         */
+        T &at(const Key &key) {
+        }
+
+        const T &at(const Key &key) const {
+        }
+
+        T &operator[](const Key &key) {
+        }
+
+        const T &operator[](const Key &key) const {
+        }
+
+        /**
+         * return an iterator point to the first
+         * inserted and existed element
+         */
+        iterator begin() {
+        }
+
+        const_iterator cbegin() const {
+        }
+
+        /**
+         * return an iterator after the last inserted element
+         */
+        iterator end() {
+        }
+
+        const_iterator cend() const {
+        }
+
+        /**
+         * if didn't contain anything, return true,
+         * otherwise false.
+         */
+        bool empty() const {
+        }
+
+        void clear() {
+        }
+
+        size_t size() const {
+        }
+
+        /**
+         * insert the value_piar
+         * if the key of the value_pair exists in the map
+         * update the value instead of adding a new element，
+         * then the order of the element moved from inner of the
+         * list to the head of the list
+         * and return false
+         * if the key of the value_pair doesn't exist in the map
+         * add a new element and return true
+         */
+        pair<iterator, bool> insert(const value_type &value) {
+        }
+
+        /**
+         * erase the value_pair pointed by the iterator
+         * if the iterator points to nothing
+         * throw
+         */
+        void remove(iterator pos) {
+        }
+
+        /**
+         * return how many value_pairs consist of key
+         * this should only return 0 or 1
+         */
+        size_t count(const Key &key) const {
+        }
+
+        /**
+         * find the iterator points at the value_pair
+         * which consist of key
+         * if not find, return the iterator
+         * point at nothing
+         */
+        iterator find(const Key &key) {
+        }
+    };
+
+    class lru {
+        using lmap = sjtu::linked_hashmap<Integer, Matrix<int>, Hash, Equal>;
+        using value_type = sjtu::pair<const Integer, Matrix<int> >;
+
+    public:
+        lru(int size) {
+        }
+
+        ~lru() {
+        }
+
+        /**
+         * save the value_pair in the memory
+         * delete something in the memory if necessary
+         */
+        void save(const value_type &v) const {
+        }
+
+        /**
+         * return a pointer contain the value
+         */
+        Matrix<int> *get(const Integer &v) const {
+        }
+
+        /**
+         * just print everything in the memory
+         * to debug or test.
+         * this operation follows the order, but don't
+         * change the order.
+         */
+        void print() {
+        }
+    };
 } // namespace sjtu
 
 #endif
