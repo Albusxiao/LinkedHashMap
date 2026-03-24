@@ -102,7 +102,13 @@ namespace sjtu {
              * ++iter
              */
             iterator &operator++() {
-                if (it==nullptr)throw "End++";
+                if (it==nullptr) {
+                    try {
+                        throw "End++";
+                    } catch (const char* c) {
+                        std::cout << c << std::endl;
+                    }
+                }
                 if (it!=nullptr&&it->next==nullptr)return iterator();
                 if (it != nullptr)it = it->next;
                 return *this;
@@ -135,7 +141,7 @@ namespace sjtu {
              */
             T &operator*() const {
                 if (it != nullptr)return it->data;
-                throw "nullptr";
+                throw "star invalid";
             }
 
             /**
@@ -143,7 +149,7 @@ namespace sjtu {
              */
             T *operator->() const noexcept {
                 if (it != nullptr)return &(it->data);
-                throw "nullptr";
+                throw "star invalid";
             }
 
             bool operator==(const iterator &rhs) const {
@@ -393,6 +399,8 @@ namespace sjtu {
          * elements
          * add whatever you want
          */
+        using hmp=hashmap<Key, T, Hash, Equal>;
+        double_list<value_type> insert_list;
         // --------------------------
         class const_iterator;
 
@@ -402,38 +410,48 @@ namespace sjtu {
              * elements
              * add whatever you want
              */
+            double_list<value_type>::iterator it;
             // --------------------------
             iterator() {
             }
 
-            iterator(const iterator &other) {
+            iterator(const iterator &other):it(other.it) {
             }
 
-            ~iterator() {
-            }
+            ~iterator() {}
 
             /**
              * iter++
              */
             iterator operator++(int) {
+                iterator tmp=*this;
+                ++it;
+                return tmp;
             }
 
             /**
              * ++iter
              */
             iterator &operator++() {
+                ++it;
+                return *this;
             }
 
             /**
              * iter--
              */
             iterator operator--(int) {
+                iterator tmp=*this;
+                --it;
+                return tmp;
             }
 
             /**
              * --iter
              */
             iterator &operator--() {
+                --it;
+                return *this;
             }
 
             /**
@@ -441,24 +459,30 @@ namespace sjtu {
              * throw "star invalid"
              */
             value_type &operator*() const {
+                return *it;
             }
 
             value_type *operator->() const noexcept {
+                return *it;
             }
 
             /**
              * operator to check whether two iterators are same (pointing to the same memory).
              */
             bool operator==(const iterator &rhs) const {
+                return it==rhs.it;
             }
 
             bool operator!=(const iterator &rhs) const {
+                return !(it==rhs.it);
             }
 
             bool operator==(const const_iterator &rhs) const {
+                return it==rhs.it;
             }
 
             bool operator!=(const const_iterator &rhs) const {
+                return !(it==rhs.it);
             }
         };
 
@@ -468,35 +492,46 @@ namespace sjtu {
              * elements
              * add whatever you want
              */
+            double_list<value_type>::iterator it;
             // --------------------------
             const_iterator() {
             }
 
-            const_iterator(const iterator &other) {
+            const_iterator(const iterator &other):it(other.it){
             }
 
             /**
              * iter++
              */
             const_iterator operator++(int) {
+                const_iterator tmp=*this;
+                ++it;
+                return tmp;
             }
 
             /**
              * ++iter
              */
             const_iterator &operator++() {
+                ++it;
+                return *this;
             }
 
             /**
              * iter--
              */
             const_iterator operator--(int) {
+                const_iterator tmp=*this;
+                --it;
+                return tmp;
             }
 
             /**
              * --iter
              */
             const_iterator &operator--() {
+                --it;
+                return *this;
             }
 
             /**
@@ -504,37 +539,48 @@ namespace sjtu {
              * throw
              */
             const value_type &operator*() const {
+                return *it;
             }
 
             const value_type *operator->() const noexcept {
+                return *it;
             }
 
             /**
              * operator to check whether two iterators are same (pointing to the same memory).
              */
             bool operator==(const iterator &rhs) const {
+                return it==rhs.it;
             }
 
             bool operator!=(const iterator &rhs) const {
+                return !(it==rhs.it);
             }
 
             bool operator==(const const_iterator &rhs) const {
+                return it==rhs.it;
             }
 
             bool operator!=(const const_iterator &rhs) const {
+                return !(it==rhs.it);
             }
         };
 
         linked_hashmap() {
         }
 
-        linked_hashmap(const linked_hashmap &other) {
+        linked_hashmap(const linked_hashmap &other):hmp(other),insert_list(other.insert_list){
         }
 
         ~linked_hashmap() {
+            hmp::clear();
+            insert_list.clear();
         }
 
         linked_hashmap &operator=(const linked_hashmap &other) {
+            hmp::operator=(other);
+            insert_list = other.insert_list;
+            return *this;
         }
 
         /**
@@ -542,15 +588,27 @@ namespace sjtu {
          * if the key not found, throw
          */
         T &at(const Key &key) {
+            auto it = hmp::find(key);
+            if (it == hmp::end()) {
+                throw "key not found";
+            }
+            return *it.second;
         }
 
         const T &at(const Key &key) const {
+            auto it = hmp::find(key);
+            if (it == hmp::end()) {
+                throw "key not found";
+            }
+            return *it.second;
         }
 
         T &operator[](const Key &key) {
+            return at(key);
         }
 
         const T &operator[](const Key &key) const {
+            return at(key);
         }
 
         /**
@@ -558,18 +616,22 @@ namespace sjtu {
          * inserted and existed element
          */
         iterator begin() {
+            return insert_list.begin();
         }
 
         const_iterator cbegin() const {
+            return insert_list.begin();
         }
 
         /**
          * return an iterator after the last inserted element
          */
         iterator end() {
+            return insert_list.end();
         }
 
         const_iterator cend() const {
+            return insert_list.end();
         }
 
         /**
@@ -577,12 +639,16 @@ namespace sjtu {
          * otherwise false.
          */
         bool empty() const {
+            return insert_list.empty();
         }
 
         void clear() {
+            hmp::clear();
+            insert_list.clear();
         }
 
         size_t size() const {
+            return hmp::size();
         }
 
         /**
@@ -596,6 +662,24 @@ namespace sjtu {
          * add a new element and return true
          */
         pair<iterator, bool> insert(const value_type &value) {
+            auto hash_result = hashmap<Key, T, Hash, Equal>::insert(value);
+            if (hash_result.second) {
+                insert_list.insert_tail(value);
+                iterator it;
+                it.it = --insert_list.end();
+                return {it, true};
+            } else {
+                for (auto i = insert_list.begin(); i != insert_list.end(); ++i) {
+                    if (i->first == value.first) {
+                        insert_list.erase(i);
+                        break;
+                    }
+                }
+                insert_list.insert_tail(value);
+                iterator it;
+                it.it = --insert_list.end();
+                return {it, false};
+            }
         }
 
         /**
@@ -604,6 +688,12 @@ namespace sjtu {
          * throw
          */
         void remove(iterator pos) {
+            if (pos.it == insert_list.end()) {
+                throw "iterator invalid";
+            }
+            Key key = pos.it->first;
+            insert_list.erase(pos.it);
+            hmp::remove(key);
         }
 
         /**
@@ -611,6 +701,9 @@ namespace sjtu {
          * this should only return 0 or 1
          */
         size_t count(const Key &key) const {
+            auto it = hmp::find(key);
+            if (it == hmp::end()) return 0;
+            return 1;
         }
 
         /**
@@ -620,6 +713,15 @@ namespace sjtu {
          * point at nothing
          */
         iterator find(const Key &key) {
+            iterator tmp;
+            tmp=insert_list.end();
+            for (auto i = insert_list.begin(); i != insert_list.end(); ++i) {
+                if (i->first == key) {
+                    tmp.it = i;
+                    return tmp;
+                }
+            }
+            return tmp;
         }
     };
 
@@ -639,6 +741,7 @@ namespace sjtu {
          * delete something in the memory if necessary
          */
         void save(const value_type &v) const {
+
         }
 
         /**
@@ -653,7 +756,12 @@ namespace sjtu {
          * this operation follows the order, but don't
          * change the order.
          */
-        void print() {
+        void print (){
+            sjtu :: linked_hashmap < Integer,Matrix < int >,Hash , Equal >:: iterator it ;
+            for ( i = mem - > begin (); i != mem - > end (); i ++){
+                std :: cout < <(* i ). first . val < < " ␣ "
+                < <(* i ). second < < std :: endl ;
+            }
         }
     };
 } // namespace sjtu
